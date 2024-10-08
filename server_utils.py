@@ -1,5 +1,45 @@
 import requests
-server_url='https://22ec-3-111-197-27.ngrok-free.app'
+
+import io
+
+import json
+server_url='https://0bcf-13-127-201-227.ngrok-free.app'
+
+def inpaint_image(image_path, bounding_boxes, output_path='inpainted_image.png'):
+    """
+    Sends a request to the inpainting API endpoint and saves the inpainted image.
+
+    Parameters:
+    - image_path: str, path to the image file to be inpainted.
+    - bounding_boxes: list of tuples, each tuple containing (x1, y1, x2, y2) coordinates.
+    - output_path: str, path where the inpainted image will be saved (default is 'inpainted_image.png').
+
+    Returns:
+    - success: bool, True if the image was successfully inpainted and saved, False otherwise.
+    - error: str or None, error message if the request fails.
+    """
+    url = server_url+'/inpaint'
+
+    try:
+        with open(image_path, 'rb') as image_file:
+            files = {
+                'image': image_file
+            }
+            data = {
+                'bboxes': json.dumps(bounding_boxes)  # Convert bounding boxes to a JSON string
+            }
+
+            response = requests.post(url, files=files, data=data)
+
+            if response.status_code == 200:
+                # Save the inpainted image to the specified output path
+                with open(output_path, 'wb') as out_file:
+                    out_file.write(response.content)
+                return True, None  # Indicate success and no error
+            else:
+                return False, response.json().get('error', 'Unknown error occurred.')
+    except Exception as e:
+        return False, str(e)
 def sam_method(image_path, text_input):
     url = server_url+'/process_image'  # URL of the Flask endpoint
     # Prepare the files and data
@@ -56,15 +96,8 @@ def image_generation(img_path,prompt):
     return image
 
 
-
-
-
-
-
-
 import re
 
-import os
 
 def extract_title_and_tags(text):
     # Regular expression patterns
@@ -90,7 +123,7 @@ def extract_title_and_tags(text):
 
 import requests
 
-def generate_prompt(prompt, url='/generate_prompt'):
+def generate_prompt(prompt, url='/generate-prompt'):
     url=server_url+url
     """
     Sends a prompt to the Flask server and returns the generated text.
@@ -114,7 +147,7 @@ def generate_prompt(prompt, url='/generate_prompt'):
     except Exception as e:
         return f"An error occurred: {str(e)}"
     
-def generate_text(prompt, url='/generate_text'):
+def generate_text(prompt, url='/generate-title'):
     url=server_url+url
     """
     Sends a prompt to the Flask server and returns the generated text.
@@ -132,7 +165,7 @@ def generate_text(prompt, url='/generate_text'):
         # Check if the request was successful
         if response.status_code == 200:
             # Parse the JSON response
-            return response.json().get('generated_text', {}).get('response', 'No response found.')
+            return response.json().get('title', {})
         else:
             return f"Error: {response.json().get('error', 'Unknown error')}"
     except Exception as e:
@@ -143,4 +176,58 @@ def get_text_LLM_answer(user_input):
     title,subtitle, hashtags = extract_title_and_tags(ans)
     return title,subtitle, hashtags 
 
+import base64
 
+def pil_image_to_bytes(image: Image) -> str:
+    img_io = io.BytesIO()
+    image.save(img_io, format='PNG')  # Save as PNG or any other format you prefer
+    img_io.seek(0)
+    return base64.b64encode(img_io.read()).decode('utf-8')
+
+# Paste Image
+def paste_image(base_image: Image, paste_image: Image, bbox):
+    url = f'{server_url}/paste_image'
+    data = {
+        'base_image': pil_image_to_bytes(base_image),
+        'paste_image': pil_image_to_bytes(paste_image),
+        'bbox': bbox
+    }
+    response = requests.post(url, json=data)
+    return Image.open(io.BytesIO(response.content))
+
+# Inpaint Image
+def inpaint_image(image: Image, bounding_boxes, inpaint_radius=3):
+    url = f'{server_url}/inpaint'
+    data = {
+        'image': pil_image_to_bytes(image),
+        'bounding_boxes': bounding_boxes,
+        'inpaint_radius': inpaint_radius
+    }
+    response = requests.post(url, json=data)
+    return Image.open(io.BytesIO(response.content))
+
+# Remove Text from Image
+def remove_text(image: str):
+    url = f'{server_url}/remove_text'
+    data = {
+        'image': pil_image_to_bytes(image)
+    }
+    response = requests.post(url, json=data)
+    return Image.open(io.BytesIO(response.content))
+
+def draw_text(image: Image, text: str, bbox: tuple, font_path: str = "arial.ttf", gradient_start=(100, 0, 0), gradient_end=(0, 0, 100)):
+    url = f'{server_url}/draw_text'
+    data = {
+        'image': pil_image_to_bytes(image),
+        'text': text,
+        'bbox': bbox,
+        'font_path': font_path,
+        'gradient_start': gradient_start,
+        'gradient_end': gradient_end
+    }
+    response = requests.post(url, json=data)
+    return Image.open(io.BytesIO(response.content))
+def get_text_LLM_answer(user_input):
+    ans=generate_text(prompt=user_input)
+    title,subtitle, hashtags = extract_title_and_tags(ans)
+    return title,subtitle, hashtags

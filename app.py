@@ -3,8 +3,8 @@ from utiils import color_schemes, industries, seasons, moods
 import os
 from clip import ImageTextMatcher
 from PIL import Image
-from server_utils import sam_method,get_text_LLM_answer,generate_prompt,image_generation
-from image_utils import inpaint_with_bboxes,remove_text_from_image,draw_multiline_text_in_bbox,paste_image_on_background
+from server_utils import sam_method,get_text_LLM_answer,generate_prompt,image_generation,generate_text,inpaint_image,paste_image,remove_text,draw_text
+from image_utils import draw_multiline_text_in_bbox
 from rembg import remove
 def handle_submit(p_name, prompt, p_color, s_color, color_scheme, industry,
                   target_audience, season, mood, visual_elements, logo, product):
@@ -40,22 +40,22 @@ def update_image(selected_image_name):
     selected_image = st.session_state.image_dict[selected_image_name]
     st.image(selected_image, caption=f"Selected: {selected_image_name}", use_column_width=True)
     Image.open(selected_image).resize((768,768)).save(selected_image)
+    selected_image_image=Image.open(selected_image)
     title_bbox,subtitle_bbox,product_bbox=sam_method(selected_image,f'title,hashtags,{st.session_state.p_name}')
-    image_without_text=remove_text_from_image(selected_image)
+    image_without_text=remove_text(selected_image_image)
     print(product_bbox)
-    empty_image=inpaint_with_bboxes(image_without_text,product_bbox)
+    empty_image=inpaint_image(image_without_text,product_bbox)
     title,subtitle, hashtags =get_text_LLM_answer(st.session_state.promot_to_title)
     image_with_new_title=draw_multiline_text_in_bbox(empty_image,title,title_bbox)
     product_image=Image.open(st.session_state.product)
     product_without_bg=remove(product_image)
-    image_with_product=paste_image_on_background(image_with_new_title,product_without_bg,product_bbox)
-    st.write('template after preprocessing')
-    st.image(image_with_product)
+    image_with_product=paste_image(image_with_new_title,product_without_bg,product_bbox)
+  
     image_with_product.save('intermidiate.png')
     output=image_generation('intermidiate.png',prompt=generate_prompt(st.session_state.promot_to_title))
     image_with_new_title=draw_multiline_text_in_bbox(output,title,title_bbox)
     output=draw_multiline_text_in_bbox(image_with_new_title,subtitle,subtitle_bbox)
-    output=paste_image_on_background(output,product_without_bg,product_bbox)
+    output=paste_image(output,product_without_bg,product_bbox)
     st.write('output')
     st.image(output)
     
@@ -79,10 +79,10 @@ with st.form(key='form'):
 
     if submit:
         st.session_state.promot_to_title=f"""
-    Generate a high-quality image for {p_name} and user prompt {prompt} that embodies the '{color_scheme}' theme during the {season} season, specifically crafted for the {industry} industry. 
-    audience of {target_audience}, conveying a {mood} mood. 
-    Use a {color_scheme} color scheme with {p_color} as the dominant color and {s_color} and isual elements {visual_elements} as a complementary accent. and it should not be blurry 
-    """
+            Generate a high-quality image for {p_name} and user prompt {prompt} that embodies the '{color_scheme}' theme during the {season} season, specifically crafted for the {industry} industry. 
+            audience of {target_audience}, conveying a {mood} mood. 
+            Use a {color_scheme} color scheme with {p_color} as the dominant color and {s_color} and isual elements {visual_elements} as a complementary accent. and it should not be blurry 
+            """
 
         handle_submit(p_name, prompt, p_color, s_color, color_scheme, industry, target_audience, season, mood, visual_elements, logo, product)
 
