@@ -136,7 +136,7 @@
 from PIL import Image, ImageDraw, ImageFont
 
 def draw_multiline_text_in_bbox(image: Image.Image, text: str, bbox: tuple, 
-                                  font_path: str = "arial.ttf", 
+                                  font_path: str = "serif.ttf", 
                                   gradient_start: tuple = (200, 0, 200), 
                                   gradient_end: tuple = (50, 50, 50)) -> Image.Image:
     """
