@@ -251,4 +251,3 @@ def draw_multiline_text_in_bbox(image: Image.Image, text: str, bbox: tuple,
         y += text_bbox[3] - text_bbox[1] + 5  # Move y position down for the next line
 
     return image
-
