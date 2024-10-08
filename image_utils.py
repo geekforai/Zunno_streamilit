@@ -133,36 +133,20 @@
 
 
 
-from PIL import Image, ImageDraw, ImageFont
-
 import os
-import random
 from PIL import Image, ImageDraw, ImageFont
 import platform
 
-def get_random_font():
-    # Define the font directories for different operating systems
+def get_default_font():
+    # Define font paths based on the operating system
     if platform.system() == "Windows":
-        font_dirs = [r'C:\Windows\Fonts']
+        return r'C:\Windows\Fonts\arial.ttf'  # Change to a specific font on Windows
     elif platform.system() == "Darwin":  # macOS
-        font_dirs = ['/Library/Fonts', '/System/Library/Fonts', os.path.expanduser('~/Library/Fonts')]
+        return '/Library/Fonts/Arial.ttf'  # Change to a specific font on macOS
     elif platform.system() == "Linux":
-        font_dirs = ['/usr/share/fonts', '/usr/local/share/fonts', os.path.expanduser('~/.fonts')]
+        return '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'  # Change to a specific font on Linux
     else:
         return "serif.ttf"  # Default fallback font
-
-    fonts = []
-    
-    # Collect all TTF and OTF fonts from the defined directories
-    for font_dir in font_dirs:
-        if os.path.exists(font_dir):
-            for root, _, files in os.walk(font_dir):
-                for file in files:
-                    if file.endswith('.ttf') or file.endswith('.otf'):
-                        fonts.append(os.path.join(root, file))
-    
-    # Return a random font if available, otherwise return a default font
-    return random.choice(fonts) if fonts else "serif.ttf"
 
 def draw_multiline_text_in_bbox(image: Image.Image, text: str, bbox: tuple, 
                                   font_path: str = None, 
@@ -174,7 +158,7 @@ def draw_multiline_text_in_bbox(image: Image.Image, text: str, bbox: tuple,
         image (Image.Image): The image to draw on.
         text (str): The text to be drawn, which can contain line breaks.
         bbox (tuple): The bounding box as (left, upper, right, lower).
-        font_path (str): The path to the TTF font file to be used. If None, a random font is selected.
+        font_path (str): The path to the TTF font file to be used. If None, the default font is used.
         gradient_start (tuple): The RGB color to start the gradient (default red).
         gradient_end (tuple): The RGB color to end the gradient (default blue).
     Returns:
@@ -189,9 +173,9 @@ def draw_multiline_text_in_bbox(image: Image.Image, text: str, bbox: tuple,
     # Set initial font size
     font_size = bbox_height // 2  # Start with a reasonable size
 
-    # Get a random font if no specific font path is provided
+    # Use the default font path
     if font_path is None:
-        font_path = get_random_font()
+        font_path = get_default_font()
 
     # Load font
     try:
