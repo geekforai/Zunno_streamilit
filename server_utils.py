@@ -3,7 +3,7 @@ import requests
 import io
 
 import json
-server_url='https://0bcf-13-127-201-227.ngrok-free.app'
+server_url='https://c3bc-13-127-201-227.ngrok-free.app'
 
 def inpaint_image(image_path, bounding_boxes, output_path='inpainted_image.png'):
     """
@@ -141,7 +141,7 @@ def generate_prompt(prompt, url='/generate-prompt'):
         # Check if the request was successful
         if response.status_code == 200:
             # Parse the JSON response
-            return response.json().get('generated_text', {}).get('response', 'No response found.')
+            return response.json().get('title', {})
         else:
             return f"Error: {response.json().get('error', 'Unknown error')}"
     except Exception as e:
@@ -176,57 +176,45 @@ def get_text_LLM_answer(user_input):
     title,subtitle, hashtags = extract_title_and_tags(ans)
     return title,subtitle, hashtags 
 
-import base64
 
-def pil_image_to_bytes(image: Image) -> str:
-    img_io = io.BytesIO()
-    image.save(img_io, format='PNG')  # Save as PNG or any other format you prefer
-    img_io.seek(0)
-    return base64.b64encode(img_io.read()).decode('utf-8')
 
 # Paste Image
-def paste_image(base_image: Image, paste_image: Image, bbox):
+def paste_image(base_image_path: str, paste_image_path: str, bbox):
     url = f'{server_url}/paste_image'
-    data = {
-        'base_image': pil_image_to_bytes(base_image),
-        'paste_image': pil_image_to_bytes(paste_image),
-        'bbox': bbox
+    files = {
+        'base_image': open(base_image_path, 'rb'),
+        'paste_image': open(paste_image_path, 'rb')
     }
-    response = requests.post(url, json=data)
+    data = {'bbox': bbox}
+    response = requests.post(url, files=files, data=data)
+    
+    for f in files.values():
+        f.close()  # Close the file handles
+    
     return Image.open(io.BytesIO(response.content))
 
 # Inpaint Image
-def inpaint_image(image: Image, bounding_boxes, inpaint_radius=3):
+def inpaint_image(image_path: str, bounding_boxes, inpaint_radius=3):
     url = f'{server_url}/inpaint'
-    data = {
-        'image': pil_image_to_bytes(image),
-        'bounding_boxes': bounding_boxes,
-        'inpaint_radius': inpaint_radius
-    }
-    response = requests.post(url, json=data)
+    files = {'image': open(image_path, 'rb')}
+    data = {'bounding_boxes': bounding_boxes, 'inpaint_radius': inpaint_radius}
+    
+    response = requests.post(url, files=files, data=data)
+    
+    files['image'].close()  # Close the file handle
     return Image.open(io.BytesIO(response.content))
 
 # Remove Text from Image
-def remove_text(image: str):
+def remove_text(image_path: str):
     url = f'{server_url}/remove_text'
-    data = {
-        'image': pil_image_to_bytes(image)
-    }
-    response = requests.post(url, json=data)
+    files = {'image': open(image_path, 'rb')}
+    
+    response = requests.post(url, files=files)
+    
+    files['image'].close()  # Close the file handle
     return Image.open(io.BytesIO(response.content))
 
-def draw_text(image: Image, text: str, bbox: tuple, font_path: str = "arial.ttf", gradient_start=(100, 0, 0), gradient_end=(0, 0, 100)):
-    url = f'{server_url}/draw_text'
-    data = {
-        'image': pil_image_to_bytes(image),
-        'text': text,
-        'bbox': bbox,
-        'font_path': font_path,
-        'gradient_start': gradient_start,
-        'gradient_end': gradient_end
-    }
-    response = requests.post(url, json=data)
-    return Image.open(io.BytesIO(response.content))
+
 def get_text_LLM_answer(user_input):
     ans=generate_text(prompt=user_input)
     title,subtitle, hashtags = extract_title_and_tags(ans)

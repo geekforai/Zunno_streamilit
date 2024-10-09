@@ -151,7 +151,7 @@ def get_default_font():
 def draw_multiline_text_in_bbox(image: Image.Image, text: str, bbox: tuple, 
                                   font_path: str = None, 
                                   gradient_start: tuple = (200, 0, 200), 
-                                  gradient_end: tuple = (50, 50, 50)) -> Image.Image:
+                                  gradient_end: tuple = (50, 50, 50),title=True) -> Image.Image:
     """
     Draws multiline text inside a given bounding box on the provided image with a 3D effect and gradient color.
     Args:
@@ -213,7 +213,10 @@ def draw_multiline_text_in_bbox(image: Image.Image, text: str, bbox: tuple,
     # Draw each line of text with 3D effect and gradient color
     for i, line in enumerate(lines):
         # 3D effect: draw shadow first
-        shadow_offset = 2  # Change this for more or less shadow
+        if title:
+            shadow_offset=0
+        else:
+            shadow_offset = 2  # Change this for more or less shadow
         shadow_color = (50, 50, 50)  # Dark gray shadow color
         shadow_text_bbox = draw.textbbox((left + shadow_offset, y + shadow_offset), line, font=font)
         shadow_width = shadow_text_bbox[2] - shadow_text_bbox[0]
